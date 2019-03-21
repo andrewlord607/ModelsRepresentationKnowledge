@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+folder_dict = "Dictionaries/"
+
 
 class DictionaryEntity(ABC):
     @abstractmethod
@@ -53,10 +55,9 @@ class Entity(DictionaryEntity):
         str_parts = line.split(" ")
         self.part_speech = str_parts[3]
         self.type_change = str_parts[4]
-        self.category = str_parts[5]
 
     def to_string(self):
-        return Part_of_speech[self.part_speech] + " " + self.category
+        return Part_of_speech[self.part_speech]
 
 
 class Flexion(object):
@@ -92,7 +93,7 @@ class Flexion(object):
 class ReadyPartDict(Dictionary):
     def __init__(self) -> None:
         self.dict = {}
-        f = open('ReadyWords.dct')
+        f = open(folder_dict + 'ReadyWords.dct')
         line = f.readline().strip()
         while line:
             parts = line.split(" ")
@@ -113,7 +114,7 @@ class ReadyPartDict(Dictionary):
 
 class FlexiesDict(object):
     def __init__(self) -> None:
-        f = open('Flexies.dct')
+        f = open(folder_dict + 'Flexies.dct')
         line = f.readline().strip()
         self.dict = {}
         while line:
@@ -137,9 +138,9 @@ class FlexiesDict(object):
             return None
 
 
-class EntitiesDict(Dictionary):
-    def __init__(self, flexies) -> None:
-        f = open('Entities.dct')
+class BaseDict(Dictionary):
+    def __init__(self, dict_file, flexies) -> None:
+        f = open(folder_dict + dict_file)
         line = f.readline().strip()
         self.dict = {}
         self.flexies = []
@@ -163,5 +164,16 @@ class EntitiesDict(Dictionary):
                         return flexie
                 if b == "_":
                     b = ""
-                b = b + a[-1:]
+                b = a[-1:] + b
                 a = a[0:-1]
+
+
+class EntitiesDict(BaseDict):
+    def __init__(self, flexies) -> None:
+        super().__init__('Entities.dct', flexies)
+
+
+class CharactersDict(BaseDict):
+
+    def __init__(self, flexies) -> None:
+        super().__init__('Characters.dct', flexies)

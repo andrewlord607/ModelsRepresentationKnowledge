@@ -1,8 +1,9 @@
-from Parser.Dictionaries import ReadyPartDict, FlexiesDict, EntitiesDict
+from Parser.Dictionaries import ReadyPartDict, FlexiesDict, EntitiesDict, CharactersDict
 
 
 class Parser(object):
-    dicts = [ReadyPartDict(), EntitiesDict([FlexiesDict()])]
+    flexies = [FlexiesDict()]
+    dicts = [ReadyPartDict(), EntitiesDict(flexies), CharactersDict(flexies)]
 
     def parse_input(self, input_str):
         input_str = input_str.strip().upper()
