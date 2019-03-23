@@ -30,7 +30,8 @@ Part_of_speech = {
 Genders = {
     'МР': 'Мужской род',
     'ЖР': 'Женский род',
-    'СР': 'Средний род'}
+    'СР': 'Средний род',
+    'НР': 'Неопределённый род'}
 
 Cases = {
     'ИП': 'Именительный падеж',
@@ -42,22 +43,48 @@ Cases = {
 
 Numbers = {
     'ЕЧ': 'Единственное число',
-    'МЧ': 'Множественное число'}
+    'МЧ': 'Множественное число',
+    'НЧ': 'Неопределённое число'}
+
+Times = {
+    'НВ': 'Настоящее время',
+    'ПВ': 'Прошедшее время',
+    'ИН': 'Инфинитив'}
+
+Aspect = {
+    'СВ': 'Совершенный вид',
+    'НВ': 'Несовершенный вид'}
+
+Persons = {
+    '1Л': 'Первое лицо',
+    '2Л': 'Второе лицо',
+    '3Л': 'Третье лицо',
+    'НЛ': 'Неопределённое лицо'}
 
 
 class Entity(DictionaryEntity):
     part_speech = ""
     type_change = ""
     category = ""
+    canonic_form = ""  # Окончание в ИП ЕД
+    quaziBase = ""  # Квазиоснова(слово без окончания)
+
+    supposed_flexion = None
 
     def __init__(self, line):
         line = line.lstrip()
-        str_parts = line.split(" ")
+        str_parts = line.split()
+        self.quaziBase = str_parts[1]
+        if str_parts[2] != '_':
+            self.canonic_form = str_parts[2]
         self.part_speech = str_parts[3]
         self.type_change = str_parts[4]
 
     def to_string(self):
-        return Part_of_speech[self.part_speech]
+        if self.supposed_flexion is None:
+            return self.quaziBase + " " + self.canonic_form + " " + Part_of_speech[self.part_speech] + " " + self.category
+        else:
+            return self.quaziBase + self.canonic_form + ": " + self.supposed_flexion.to_string()
 
 
 class Flexion(object):
@@ -66,27 +93,60 @@ class Flexion(object):
 
     def add_line(self, line):
         line = line.lstrip()
-        line_parts = line.split(" ")
+        line_parts = line.split()
         part = Flexion.__Part()
+        # TODO: хотелось бы сделать это покрасивее
         part.part_speech = line_parts[0]
-        part.part_gender = line_parts[1]
-        part.part_case = line_parts[2]
-        part.part_number = line_parts[3]
-        i = 5
+        if part.part_speech == 'СУ' or part.part_speech == 'ПП':
+            part.part_gender = line_parts[1]
+            part.part_case = line_parts[2]
+            part.part_number = line_parts[3]
+            i = 5
+        elif part.part_speech == 'КП':
+            part.part_gender = line_parts[1]
+            part.part_number = line_parts[2]
+            i = 4
+        elif part.part_speech == 'ДЕ':
+            part.part_time = line_parts[1]
+            part.part_aspect = line_parts[2]
+            i = 4
+        elif part.part_speech == 'ГЛ':
+            part.part_time = line_parts[1]
+            part.part_person = line_parts[2]
+            part.part_gender = line_parts[3]
+            part.part_number = line_parts[4]
+            part.part_aspect = line_parts[5]
+            i = 7
+
         while line_parts[i] != "]":
             part.types_change.append(line_parts[i])
             i += 1
         self.parts.append(part)
 
     class __Part(DictionaryEntity):
+        # TODO: хотелось бы сделать это покрасивее, как и в add_line
         def to_string(self):
-            return Part_of_speech[self.part_speech] + " " + Genders[self.part_gender] + " " + Cases[
-                self.part_case] + " " + Numbers[self.part_number]
+            if self.part_speech == 'СУ' or self.part_speech == 'ПП':
+                return Part_of_speech[self.part_speech] + ", " + Genders[self.part_gender] + ", " + Cases[
+                    self.part_case] + ", " + Numbers[self.part_number]
+            elif self.part_speech == 'КП':
+                return Part_of_speech[self.part_speech] + ", " + Genders[self.part_gender] + ", " + Numbers[
+                    self.part_number]
+            elif self.part_speech == 'ДЕ':
+                return Part_of_speech[self.part_speech] + ", " + Times[self.part_time] + ", " + Aspect[
+                    self.part_aspect]
+            elif self.part_speech == 'ГЛ':
+                return Part_of_speech[self.part_speech] + ", " + Times[self.part_time] + ", " + Persons[
+                    self.part_person] + ", " + Genders[self.part_gender] + ", " + Numbers[self.part_number] + ", " + Aspect[
+                    self.part_aspect]
 
         part_speech = ""
         part_gender = ""
         part_case = ""
         part_number = ""
+        part_time = ""
+        part_aspect = ""
+        part_person = ""
         types_change = []
 
 
@@ -94,11 +154,9 @@ class ReadyPartDict(Dictionary):
     def __init__(self) -> None:
         self.dict = {}
         f = open(folder_dict + 'ReadyWords.dct')
-        line = f.readline().strip()
-        while line:
-            parts = line.split(" ")
+        for line in f:
+            parts = line.split()
             self.dict[parts[1]] = ReadyPartDict.__ReadyWord(parts[2])
-            line = f.readline().strip()
         f.close()
 
     def find(self, word):
@@ -118,7 +176,7 @@ class FlexiesDict(object):
         line = f.readline().strip()
         self.dict = {}
         while line:
-            parts = line.split(" ")
+            parts = line.split()
             flexion = Flexion()
             for i in range(int(parts[2])):
                 line = f.readline().strip()
@@ -141,14 +199,15 @@ class FlexiesDict(object):
 class BaseDict(Dictionary):
     def __init__(self, dict_file, flexies) -> None:
         f = open(folder_dict + dict_file)
-        line = f.readline().strip()
         self.dict = {}
         self.flexies = []
-        while line:
-            parts = line.split(" ")
+        for line in f:
+            parts = line.split()
             entity = Entity(line)
-            self.dict[parts[1]] = entity
-            line = f.readline().strip()
+            if parts[1] in self.dict:
+                self.dict[parts[1]].append(entity)
+            else:
+                self.dict[parts[1]] = [entity]
         f.close()
         self.flexies = flexies
 
@@ -159,9 +218,11 @@ class BaseDict(Dictionary):
             while len(a) > 1:
                 base = self.dict.get(a)
                 if base is not None:
-                    flexie = flex.find(b, base.part_speech, base.type_change)
-                    if flexie is not None:
-                        return flexie
+                    for entity in base:
+                        flexie = flex.find(b, entity.part_speech, entity.type_change)
+                        if flexie is not None:
+                            entity.supposed_flexion = flexie
+                            return entity
                 if b == "_":
                     b = ""
                 b = a[-1:] + b
@@ -174,6 +235,30 @@ class EntitiesDict(BaseDict):
 
 
 class CharactersDict(BaseDict):
-
     def __init__(self, flexies) -> None:
         super().__init__('Characters.dct', flexies)
+
+
+class PredicatesDict(BaseDict):
+    def __init__(self, flexies) -> None:
+        super().__init__('Predicates.dct', flexies)
+
+class GlueWordDict(object):
+    # TODO: Переписать более эффективно?
+    def __init__(self) -> None:
+        self.dict = {}
+        f = open(folder_dict + 'GluedWords.dct')
+        for line in f:
+            parts = line.split()
+            not_glue = ' '.join(str(x) for x in parts[1:])
+            self.dict[not_glue] = not_glue.replace(' ', '_')
+        f.close()
+
+    def transform(self, input_str):
+        for gw in self.dict:
+            if gw in input_str:
+                input_str = input_str.replace(gw, self.dict[gw])
+        return input_str
+
+
+
