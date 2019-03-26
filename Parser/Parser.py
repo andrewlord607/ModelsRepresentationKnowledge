@@ -1,4 +1,5 @@
-from Parser.Dictionaries import ReadyPartDict, FlexiesDict, EntitiesDict, GlueWordDict, PredicatesDict, CharactersDict
+from Parser.Dictionaries import ReadyPartDict, EntitiesDict, GlueWordDict, PredicatesDict, CharactersDict
+from Parser.Flexies import FlexiesDict
 
 
 class Parser(object):
