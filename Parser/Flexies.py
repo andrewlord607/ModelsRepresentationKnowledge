@@ -91,7 +91,7 @@ class Flexion(object):
 
 class FlexiesDict(object):
     def __init__(self) -> None:
-        f = open(folder_dict + 'Flexies.dct')
+        f = open(folder_dict + 'Flexies.dct', encoding='utf-8')
         line = f.readline().strip()
         self.dict = {}
         while line:

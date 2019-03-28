@@ -47,7 +47,7 @@ class DictEntity(BaseEntity):
 class ReadyPartDict(Dictionary):
     def __init__(self) -> None:
         self.dict = {}
-        f = open(folder_dict + 'ReadyWords.dct')
+        f = open(folder_dict + 'ReadyWords.dct', encoding='utf-8')
         for line in f:
             parts = line.split()
             self.dict[parts[1]] = ReadyPartDict.__ReadyWord(parts[2])
@@ -66,7 +66,7 @@ class ReadyPartDict(Dictionary):
 
 class BaseDict(Dictionary):
     def __init__(self, dict_file, flexies, entity_class) -> None:
-        f = open(folder_dict + dict_file)
+        f = open(folder_dict + dict_file, encoding='utf-8')
         self.dict = {}
         self.flexies = []
         for line in f:
@@ -89,6 +89,8 @@ class BaseDict(Dictionary):
                     for entity in base:
                         flexie = flex.find(b, entity.part_speech, entity.type_change)
                         if flexie is not None:
+                            return flexie
+                        else:
                             return entity
                 if b == "_":
                     b = ""
@@ -114,7 +116,7 @@ class PredicatesDict(BaseDict):
 class GlueWordDict(object):
     def __init__(self) -> None:
         self.dict = {}
-        f = open(folder_dict + 'GluedWords.dct')
+        f = open(folder_dict + 'GluedWords.dct', encoding='utf-8')
         for line in f:
             parts = line.split()
             not_glue = ' '.join(str(x) for x in parts[1:])
